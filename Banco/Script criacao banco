@@ -1,0 +1,8 @@
+CREATE TABLE CrawlerData(
+    Id int PRIMARY KEY,
+    DateBegin DateTime,
+    DateEnd DateTime,
+    PageQty int(3),
+    LineQty int,
+    JsonFile string
+);

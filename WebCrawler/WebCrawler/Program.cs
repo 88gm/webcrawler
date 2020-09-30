@@ -1,38 +1,51 @@
-﻿using HtmlAgilityPack;
-using System;
-using System.Linq;
-using System.Net.Http;
+﻿using Serilog;
+using System.IO;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using WebCrawler.Infrastructure.ExtensionMethods;
+using WebCrawler.Domain.Services;
+using System.Threading.Tasks;
 
 namespace WebCrawler
 {
     class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            StartCrawlerAsync();
-
-            Console.ReadLine();
+            MainAsync(args).GetAwaiter().GetResult();
         }
 
-
-        private static async void StartCrawlerAsync()
+        public static async Task MainAsync(string[] args)
         {
-            var url = "https://proxyservers.pro/proxy/list/order/updated/order_dir/desc/page/1";
+            var builder = new ConfigurationBuilder();
+            BuildConfig(builder);
 
-            var httpClient = new HttpClient();
-            var html = await httpClient.GetStringAsync(url);
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(builder.Build())
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .CreateLogger();
 
-            var htmlDocument = new HtmlDocument();
-            htmlDocument.LoadHtml(html);
+            Log.Logger.Information("Iniciando a aplicacao");
 
-            var node = htmlDocument.DocumentNode.SelectSingleNode("//ul[@class='pagination justify-content-end']");
-            var pages = node.Descendants("li").ToList().Count;
+            var host = Host.CreateDefaultBuilder(args)
+                .ConfigureServices((context, services) =>
+                {
+                    services.AddDomain();
+                })
+                .UseSerilog()
+                .Build();
 
-            for(var i = 1; i < pages; i++)
-            {
-                // continuar daqui \/
-                // Pegar node <TABLE> pela onde class="table table-hover", e a partir daí, pegar os filhos <tr> pra poder ter as linhas de dados..
-            }
+            var svc = ActivatorUtilities.CreateInstance<ProxyPageService>(host.Services);
+
+            await svc.ExtractProxyList();
+        }
+
+        static void BuildConfig(IConfigurationBuilder builder)
+        {
+            builder.SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
         }
     }
 }

@@ -39,7 +39,9 @@ namespace WebCrawler
 
             var svc = ActivatorUtilities.CreateInstance<ProxyPageService>(host.Services);
 
+            Log.Logger.Information("Iniciando a extração de dados");
             await svc.ExtractProxyList();
+            Log.Logger.Information("Fim da extração de dados");
         }
 
         static void BuildConfig(IConfigurationBuilder builder)
